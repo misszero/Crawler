@@ -81,7 +81,7 @@ public class FileDownLoader {
 
                 //根据网页 url 生成保存时的文件名
                 String type = response.getHeaders("Content-Type")[0].getValue();
-                filePath = "D:\\lyc\\exports\\" + getFileNameByUrl(url, type);
+                filePath = "E:\\MyProjects\\exports\\" + getFileNameByUrl(url, type);
 
                 saveToLocal(responseBody, filePath);
             }

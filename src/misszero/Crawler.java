@@ -18,7 +18,7 @@ public class Crawler {
             LinkFilter filter = new LinkFilter() {
                 //提取以 http://www.twt.edu.cn 开头的链接
                 public boolean accept(String url) {
-                    if (url.startsWith("https://github.com"))
+                    if (url.startsWith("http://m.stzp.cn/jw/showjob_") || url.startsWith("http://m.stzp.cn/search/offer_search_result.aspx"))
                         return true;
                     else
                         return false;
@@ -27,7 +27,8 @@ public class Crawler {
             //初始化 URL 队列
             initCrawlerWithSeeds(seeds);
             //循环条件：待抓取的链接不空且抓取的网页不多于 1000
-            while (!LinkDB.unVisitedUrlsEmpty() && LinkDB.getVisitedUrlNum() <= 1000) {
+            //while (!LinkDB.unVisitedUrlsEmpty() && LinkDB.getVisitedUrlNum() <= 1000) {
+            while (!LinkDB.unVisitedUrlsEmpty()) {
                 //队头 URL 出对
                 String visitUrl = LinkDB.unVisitedUrlDeQueue();
                 if (visitUrl == null)

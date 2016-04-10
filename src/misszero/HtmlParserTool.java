@@ -19,7 +19,7 @@ public class HtmlParserTool {
         Set<String> links = new HashSet<String>();
         try {
             Parser parser = new Parser(url);
-            parser.setEncoding("utf-8");
+            parser.setEncoding("gb2312");
             // 过滤 <frame >标签的 filter，用来提取 frame 标签里的 src 属性所表示的链接
             NodeFilter frameFilter = new NodeFilter() {
                 public boolean accept(Node node) {

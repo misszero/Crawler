@@ -38,6 +38,22 @@ public class FileDownLoader {
         }
     }
 
+    public String getFileName(String code, String contentType) {
+
+        String path = null;
+
+        if(contentType.indexOf("html")!=-1)
+        {
+            path= code + ".html";
+        }
+        else
+        {
+            return code + "." + contentType.substring(contentType.lastIndexOf("/") + 1);
+        }
+
+        return path;
+    }
+
     /**保存网页字节数组到本地文件
      * filePath 为要保存的文件的相对地址
      */
@@ -56,7 +72,7 @@ public class FileDownLoader {
     }
 
     /*下载 url 指向的网页*/
-    public String  downloadFile(String url)
+    public String  downloadFile(String code, String url)
     {
         String filePath=null;
         CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -81,7 +97,7 @@ public class FileDownLoader {
 
                 //根据网页 url 生成保存时的文件名
                 String type = response.getHeaders("Content-Type")[0].getValue();
-                filePath = "E:\\MyProjects\\exports\\" + getFileNameByUrl(url, type);
+                filePath = Config.SaveFilePath + getFileName(code, type);
 
                 saveToLocal(responseBody, filePath);
             }
@@ -102,11 +118,5 @@ public class FileDownLoader {
             }
         }
         return filePath;
-    }
-    //测试的 main 方法
-    public static void main(String[]args)
-    {
-        FileDownLoader downLoader = new FileDownLoader();
-        downLoader.downloadFile("http://www.twt.edu.cn");
     }
 }

@@ -1,60 +1,107 @@
 package misszero;
 
+import misszero.DB.CrawlerDB;
+
+import java.util.Iterator;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
-public class Crawler {
-    /* 使用种子 url 初始化 URL 队列*/
-    private void initCrawlerWithSeeds(String[] seeds)
-    {
+public class Crawler extends Thread {
+
+    private CrawlerDB crawlerDB;
+    private LinkDB seedDB;
+    private LinkDB linkDB;
+    private volatile boolean running;
+
+    public Crawler(CrawlerDB crawlerDB, LinkDB linkDB, String[] seeds) {
+
+        this.crawlerDB = crawlerDB;
+        this.seedDB = new LinkDB();
+        this.linkDB = linkDB;
+        this.running = false;
+
         for(int i=0;i<seeds.length;i++)
-            LinkDB.addUnvisitedUrl(seeds[i]);
+            this.seedDB.addUnvisitedUrl(seeds[i]);
     }
 
     /* 爬取方法*/
-    public void crawling(String[] seeds)
+    private void crawling()
     {
+        int type = Config.Type;
+
         try {
+
             LinkFilter filter = new LinkFilter() {
                 //提取以 http://www.twt.edu.cn 开头的链接
                 public boolean accept(String url) {
-                    if (url.startsWith("http://m.stzp.cn/jw/showjob_") || url.startsWith("http://m.stzp.cn/search/offer_search_result.aspx"))
+                    if (URLMatcher.matchFilterURL(url))
                         return true;
                     else
                         return false;
                 }
             };
-            //初始化 URL 队列
-            initCrawlerWithSeeds(seeds);
-            //循环条件：待抓取的链接不空且抓取的网页不多于 1000
-            //while (!LinkDB.unVisitedUrlsEmpty() && LinkDB.getVisitedUrlNum() <= 1000) {
-            while (!LinkDB.unVisitedUrlsEmpty()) {
-                //队头 URL 出对
-                String visitUrl = LinkDB.unVisitedUrlDeQueue();
-                if (visitUrl == null)
-                    continue;
-                FileDownLoader downLoader = new FileDownLoader();
-                //下载网页
-                downLoader.downloadFile(visitUrl);
-                //该 url 放入到已访问的 URL 中
-                LinkDB.addVisitedUrl(visitUrl);
-                //提取出下载网页中的 URL
 
-                Set<String> links = HtmlParserTool.extracLinks(visitUrl, filter);
-                //新的未访问的 URL 入队
-                for (String link : links) {
-                    LinkDB.addUnvisitedUrl(link);
+
+
+                while (!seedDB.unVisitedUrlsEmpty()) {
+
+                    if (!running) {
+                        break;
+                    }
+
+                    String visitUrl = seedDB.unVisitedUrlDeQueue();
+
+                    if (visitUrl == null) {
+                        continue;
+                    }
+
+                    if (linkDB.checkUrlIsVisited(visitUrl)) {
+                        continue;
+                    }
+
+                    seedDB.addVisitedUrl(visitUrl);
+
+                    synchronized (linkDB) {
+                        linkDB.addVisitedUrl(visitUrl);
+                    }
+
+                    if (URLMatcher.matchLinkURL(visitUrl)) {
+
+                        String code = UUID.randomUUID().toString();
+                        FileDownLoader downLoader = new FileDownLoader();
+                        String filePath = downLoader.downloadFile(code, visitUrl);
+                        String url = visitUrl;
+                        String path = filePath;
+                        crawlerDB.addLink(code, type, url, path);
+
+                    } else {
+
+                        Set<String> links = HtmlParserTool.extracLinks(visitUrl, filter);
+                        for (String link : links) {
+                            seedDB.addUnvisitedUrl(link);
+                        }
+                    }
                 }
-            }
+
         }
         catch (Exception ex) {
-
+            ex.printStackTrace();
         }
     }
-    //main 方法入口
-    public static void main(String[]args)
-    {
-        Crawler crawler = new Crawler();
-        crawler.crawling(new String[]{"http://www.twt.edu.cn"});
+
+    @Override
+    public void run() {
+        this.running = true;
+        crawling();
+    }
+
+    public void stopRun() {
+        this.running = false;
+        try {
+            this.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -1,22 +1,23 @@
 package misszero;
 
-import misszero.DB.CrawlerDB;
-import misszero.DB.DBBase;
-
 import java.util.Scanner;
-import java.util.UUID;
 
 public class Main {
 
-    private static CrawlerController crawlerController;
+    private static Frontier frontier;
 
     public static void main(String[] args) {
 
-        crawlerController = new CrawlerController();
+        frontier = new Frontier();
 
-        for(int i = 0; i < 10; i ++) {
-            int pageNum = 1 + i * 2000;
-            crawlerController.createCrawlerAndRun(new String[]{"http://m.stzp.cn/search/offer_search_result.aspx?page=" + String.valueOf(pageNum)});
+        try {
+
+            frontier.createExtractorAndRun(5, new String[]{"http://m.stzp.cn/search/offer_search_result.aspx?page=1"});
+            frontier.createFetcherAndRun(5);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
         }
 
         waitUserInput();
@@ -26,10 +27,20 @@ public class Main {
     private static void waitUserInput() {
 
         Scanner scanner = new Scanner(System.in);
-        System.out.println("正在采集网页数据……停止任务请按下q并回车。");
+
+        System.out.println("正在采集网页数据……。");
+        System.out.println("q q - 停止所有任务并退出程序");
+        System.out.println("se SE - 停止提取任务");
+
         String inputText = scanner.next();
 
         if(inputText.equalsIgnoreCase("q")) {
+
+        } else if(inputText.equalsIgnoreCase("se")) {
+
+            frontier.stopExtractors();
+            System.out.println("提取任务已停止。");
+            waitUserInput();
 
         } else {
 
@@ -37,6 +48,6 @@ public class Main {
 
         }
 
-        crawlerController.stopAll();
+        frontier.stopAll();
     }
 }

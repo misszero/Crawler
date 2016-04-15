@@ -8,76 +8,71 @@ import java.util.Set;
 
 public class CrawlerDB extends DBBase {
 
-    public void addLink(String code, int type, String url) {
+    private Connection conn = null;
 
-        Connection conn = null;
+    public void connect() {
+        this.conn = createConnection();
+    }
+
+    public void disconnect() {
+
+        if(this.conn == null) {
+            return;
+        }
 
         try {
 
-            conn = createConnection();
-            Statement statement = conn.createStatement();
+            this.conn.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void addLink(String code, int type, String url) {
+
+        try {
+
+            Statement statement = this.conn.createStatement();
 
             String str = "insert into links (Code, Type, Url, CreateTime) values ('%s', %s, '%s', now());";
             String sql = String.format(str, code, type, url);
             statement.execute(sql);
 
-            conn.close();
-
         } catch(SQLException e) {
             e.printStackTrace();
         } catch(Exception e) {
             e.printStackTrace();
-        } finally {
-            if(conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
     }
 
-    public void updateLinkToDownloaded(String url, String path) {
-
-        Connection conn = null;
+    public void updateLinkToDownloaded(String url, String content) {
 
         try {
 
-            conn = createConnection();
-            Statement statement = conn.createStatement();
+            String sql = "update links set Downloaded=1, Content=? where Url=?;";
+            PreparedStatement statement = this.conn.prepareStatement(sql);
 
-            String str = "update links set Downloaded=1, Path='%s' where Url='%s';";
-            String sql = String.format(str, path, url);
-            statement.execute(sql);
+            statement.setString(1, content);
+            statement.setString(2, url);
 
-            conn.close();
+            statement.execute();
 
         } catch(SQLException e) {
             e.printStackTrace();
         } catch(Exception e) {
             e.printStackTrace();
-        } finally {
-            if(conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
     public Set<String> getLinkUrls() {
 
         Set<String> urls = new HashSet<String>();
-        Connection conn = null;
 
         try {
 
-            conn = createConnection();
-            Statement statement = conn.createStatement();
+            Statement statement = this.conn.createStatement();
 
             String sql = "select * from links";
 
@@ -89,20 +84,11 @@ public class CrawlerDB extends DBBase {
             }
 
             rs.close();
-            conn.close();
 
         } catch(SQLException e) {
             e.printStackTrace();
         } catch(Exception e) {
             e.printStackTrace();
-        } finally {
-            if(conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
         return urls;
@@ -111,12 +97,10 @@ public class CrawlerDB extends DBBase {
     public Set<LinkEntity> getLinks() {
 
         Set<LinkEntity> links = new HashSet<LinkEntity>();
-        Connection conn = null;
 
         try {
 
-            conn = createConnection();
-            Statement statement = conn.createStatement();
+            Statement statement = this.conn.createStatement();
 
             String sql = "select * from links";
 
@@ -128,20 +112,11 @@ public class CrawlerDB extends DBBase {
             }
 
             rs.close();
-            conn.close();
 
         } catch(SQLException e) {
             e.printStackTrace();
         } catch(Exception e) {
             e.printStackTrace();
-        } finally {
-            if(conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
         return links;

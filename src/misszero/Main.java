@@ -12,8 +12,7 @@ public class Main {
 
         try {
 
-            frontier.createExtractorAndRun(5, new String[]{"http://m.stzp.cn/search/offer_search_result.aspx?page=1"});
-            frontier.createFetcherAndRun(5);
+            frontier.runTask();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -21,6 +20,12 @@ public class Main {
         }
 
         waitUserInput();
+
+        System.out.println("任务结束。");
+        frontier.stopTask();
+
+        /*String str = HtmlParserTool.extracContent1("http://m.stzp.cn/jw/showjob_3351015.aspx?keyword=");
+        System.out.println(str);*/
 
     }
 
@@ -38,7 +43,7 @@ public class Main {
 
         } else if(inputText.equalsIgnoreCase("se")) {
 
-            frontier.stopExtractors();
+            frontier.getTask().stopExtractors();
             System.out.println("提取任务已停止。");
             waitUserInput();
 
@@ -47,7 +52,5 @@ public class Main {
             waitUserInput();
 
         }
-
-        frontier.stopAll();
     }
 }

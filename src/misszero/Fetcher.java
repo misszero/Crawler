@@ -1,19 +1,26 @@
 package misszero;
 
 import misszero.DB.CrawlerDB;
+import org.htmlparser.Node;
+import org.htmlparser.NodeFilter;
+
 import java.util.Set;
 import java.util.UUID;
 
 public class Fetcher extends Thread {
 
+    private Task task;
     private CrawlerDB crawlerDB;
     private LinkDB downDB;
+    private ContentFilter contentFilter;
     private volatile boolean running;
 
-    public Fetcher(CrawlerDB crawlerDB, LinkDB downDB) {
+    public Fetcher(Task task) {
 
-        this.crawlerDB = crawlerDB;
-        this.downDB = downDB;
+        this.task = task;
+        this.crawlerDB = this.task.getCrawlerDB();
+        this.downDB = this.task.getDownDB();
+        this.contentFilter = this.task.getContentFilter();
         this.running = false;
     }
 
@@ -45,22 +52,25 @@ public class Fetcher extends Thread {
             while (this.running) {
 
                 String visitUrl = null;
-                synchronized (this.downDB) {
+
+                synchronized (LinkDB.class) {
+
                     visitUrl = getUrl();
+
+                    if (visitUrl == null) {
+                        continue;
+                    }
+
                 }
 
-                if(visitUrl == null) {
-                    continue;
-                }
+                if(visitUrl != null) {
 
-                synchronized (this.downDB) {
-                    this.downDB.addUnvisitedUrl(visitUrl);
-                }
+                    //String content = HtmlParserTool.extracContent(visitUrl, this.contentFilter);
+                    //String content = HtmlParserTool.extracContent1(visitUrl);
+                    String content = this.contentFilter.accept(visitUrl);
+                    this.crawlerDB.updateLinkToDownloaded(visitUrl, content);
 
-                String code = UUID.randomUUID().toString();
-                FileDownLoader downLoader = new FileDownLoader();
-                String path = downLoader.downloadFile(code, visitUrl);
-                this.crawlerDB.updateLinkToDownloaded(visitUrl, path);
+                }
             }
 
         }

@@ -8,7 +8,7 @@ public class DBBase {
     public Connection createConnection() {
 
         String driver = "com.mysql.jdbc.Driver";
-        String url = "jdbc:mysql://127.0.0.1:3306/crawler";
+        String url = "jdbc:mysql://127.0.0.1:3306/crawler?useUnicode=true&characterEncoding=UTF-8";
         String user = "root";
         String password = "abc123";
         Connection conn = null;

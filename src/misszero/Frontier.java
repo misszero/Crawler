@@ -1,92 +1,61 @@
 package misszero;
 
-import misszero.DB.CrawlerDB;
-import misszero.Entities.LinkEntity;
+import org.htmlparser.Node;
+import org.htmlparser.NodeFilter;
+import org.htmlparser.tags.Html;
 
-import java.util.*;
 
 public class Frontier {
 
-    private CrawlerDB crawlerDB;
-    private LinkDB linkDB;
-    private LinkDB downDB;
-    private List<Extractor> extractors;
-    private List<Fetcher> fetchers;
+    private Task task;
 
     public Frontier() {
 
-        this.crawlerDB = new CrawlerDB();
-        this.linkDB = new LinkDB();
-        this.downDB = new LinkDB();
-        this.extractors = new ArrayList<Extractor>();
-        this.fetchers = new ArrayList<Fetcher>();
-
-        initWithLinks();
     }
 
-    /* 使用种子 url 初始化 URL 队列*/
-    private void initWithLinks()
-    {
-        Set<LinkEntity> links = this.crawlerDB.getLinks();
-        Iterator<LinkEntity> it = links.iterator();
-        while(it.hasNext())
-        {
-            LinkEntity link = it.next();
-            this.linkDB.addVisitedUrl(link.getUrl());
-            if(link.isDownloaded()) {
-                this.downDB.addVisitedUrl(link.getUrl());
-            } else {
-                this.downDB.addUnvisitedUrl(link.getUrl());
+    public void runTask() {
+
+        LinkFilter linkFilter = new LinkFilter() {
+            public boolean accept(String url) {
+                if (URLMatcher.matchFilterURL(url))
+                    return true;
+                else
+                    return false;
             }
+        };
+
+        ContentFilter contentFilter = new ContentFilter() {
+            @Override
+            public String accept(String url) {
+                return HtmlParserTool.extracContent1(url);
+            }
+        };
+
+        this.task = new Task(linkFilter, contentFilter);
+
+        try {
+
+            this.task.createExtractorAndRun(10, new String[]{"http://m.stzp.cn/search/offer_search_result.aspx?page=1"});
+            this.task.createFetcherAndRun(10);
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
+    public void stopTask() {
 
-    public void createExtractorAndRun(int count, String[] seeds) throws Exception {
+        if(this.task != null) {
 
-        if(count < 1) {
-            throw new Exception("提取任务的数量不能小于1个。");
-        }
+            this.task.stopAll();
 
-        for(int i = 0; i < seeds.length; i ++) {
-            this.linkDB.addUnvisitedUrl(seeds[i]);
-        }
-
-        for(int i = 0; i < count; i ++) {
-            Extractor extractor = new Extractor(this.crawlerDB, this.linkDB, this.downDB);
-            this.extractors.add(extractor);
-            extractor.start();
         }
     }
 
-    public void createFetcherAndRun(int count) throws Exception {
+    public Task getTask() {
 
-        if(count < 1) {
-            throw new Exception("下载任务的数量不能小于1个。");
-        }
+        return this.task;
 
-        for(int i = 0; i < count; i ++) {
-            Fetcher fetcher = new Fetcher(this.crawlerDB, this.downDB);
-            this.fetchers.add(fetcher);
-            fetcher.start();
-        }
     }
 
-    public void stopAll() {
-
-        stopExtractors();
-        stopFetchers();
-    }
-
-    public void stopExtractors() {
-        for(Extractor extractor : this.extractors) {
-            extractor.stopRun();
-        }
-    }
-
-    public void stopFetchers() {
-        for(Fetcher fetcher : this.fetchers) {
-            fetcher.stopRun();
-        }
-    }
 }

@@ -6,16 +6,20 @@ import java.util.UUID;
 
 public class Extractor extends Thread {
 
+    private Task task;
     private CrawlerDB crawlerDB;
     private LinkDB linkDB;
     private LinkDB downDB;
+    private LinkFilter linkFilter;
     private volatile boolean running;
 
-    public Extractor(CrawlerDB crawlerDB, LinkDB linkDB, LinkDB downDB) {
+    public Extractor(Task task) {
 
-        this.crawlerDB = crawlerDB;
-        this.linkDB = linkDB;
-        this.downDB = downDB;
+        this.task = task;
+        this.crawlerDB = this.task.getCrawlerDB();
+        this.linkDB = this.task.getLinkDB();
+        this.downDB = this.task.getDownDB();
+        this.linkFilter = this.task.getLinkFilter();
         this.running = false;
     }
 
@@ -47,47 +51,40 @@ public class Extractor extends Thread {
 
         try {
 
-            LinkFilter filter = new LinkFilter() {
-                //提取以 http://www.twt.edu.cn 开头的链接
-                public boolean accept(String url) {
-                    if (URLMatcher.matchFilterURL(url))
-                        return true;
-                    else
-                        return false;
-                }
-            };
-
-
             while (this.running) {
 
                 String visitUrl = null;
-                synchronized (this.linkDB) {
+                boolean matchLinkURL = true;
+
+                synchronized (LinkDB.class) {
+
                     visitUrl = getUrl();
+
+                    if (visitUrl == null) {
+                        continue;
+                    }
+
+                    matchLinkURL = URLMatcher.matchLinkURL(visitUrl);
+                    if (matchLinkURL) {
+
+                        this.downDB.addUnvisitedUrl(visitUrl);
+                        String code = UUID.randomUUID().toString();
+                        String url = visitUrl;
+                        this.crawlerDB.addLink(code, type, url);
+
+                    }
                 }
 
-                if(visitUrl == null) {
-                    continue;
-                }
+                if (!matchLinkURL)  {
 
-                synchronized (this.linkDB) {
-                    this.downDB.addUnvisitedUrl(visitUrl);
-                }
+                    Set<String> links = HtmlParserTool.extracLinks(visitUrl, this.linkFilter);
 
-                if (URLMatcher.matchLinkURL(visitUrl)) {
+                    synchronized (LinkDB.class) {
 
-                    String code = UUID.randomUUID().toString();
-                    /*FileDownLoader downLoader = new FileDownLoader();
-                    String filePath = downLoader.downloadFile(code, visitUrl);*/
-                    String url = visitUrl;
-                    this.crawlerDB.addLink(code, type, url);
-
-                } else {
-
-                    Set<String> links = HtmlParserTool.extracLinks(visitUrl, filter);
-                    synchronized (this.linkDB) {
                         for (String link : links) {
                             this.linkDB.addUnvisitedUrl(link);
                         }
+
                     }
                 }
             }
